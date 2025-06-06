@@ -119,3 +119,116 @@ def get_quiz_results(quiz_id):
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+# 📍 Get all quizzes created by a teacher
+@teacher_bp.route('/quizzes/<teacher_id>', methods=['GET'])
+def get_teacher_quizzes(teacher_id):
+    try:
+        # Step 1: Connect to DB
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Step 2: Fetch quizzes by this teacher
+        query = "SELECT quiz_id, title, created_at FROM quizzes WHERE teacher_id = %s ORDER BY created_at DESC"
+        cursor.execute(query, (teacher_id,))
+        quizzes = cursor.fetchall()
+
+        # Step 3: Close connection
+        cursor.close()
+        conn.close()
+
+        # Step 4: Return quiz list
+        return jsonify({'success': True, 'quizzes': quizzes}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+# 📍 Get all questions for a specific quiz
+@teacher_bp.route('/questions/<int:quiz_id>', methods=['GET'])
+def get_quiz_questions(quiz_id):
+    try:
+        # Step 1: Connect to DB
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Step 2: Fetch questions
+        query = """
+            SELECT question_id, question_text, option1, option2, option3, option4, correct_option
+            FROM questions
+            WHERE quiz_id = %s
+        """
+        cursor.execute(query, (quiz_id,))
+        questions = cursor.fetchall()
+
+        # Step 3: Close connection
+        cursor.close()
+        conn.close()
+
+        # Step 4: Return result
+        return jsonify({'success': True, 'questions': questions}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+
+from flask import make_response
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
+
+# 📄 Export final results of a quiz as PDF
+@teacher_bp.route('/export/<int:quiz_id>', methods=['GET'])
+def export_results_pdf(quiz_id):
+    try:
+        # Step 1: Connect to database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Step 2: Get student result + name + course using JOIN
+        query = """
+            SELECT s.full_name, s.email, s.course,
+                   f.total_score, f.cheating_detected, f.reason
+            FROM final_results f
+            JOIN students s ON f.student_email = s.email
+            WHERE f.quiz_id = %s
+        """
+        cursor.execute(query, (quiz_id,))
+        results = cursor.fetchall()
+
+        # Step 3: Setup PDF buffer
+        pdf_buffer = io.BytesIO()
+        pdf = canvas.Canvas(pdf_buffer, pagesize=letter)
+        pdf.setFont("Helvetica", 12)
+
+        # Step 4: Title
+        pdf.drawString(50, 750, f"Quiz Results for Quiz ID: {quiz_id}")
+        y = 720
+
+        # Step 5: Add table rows
+        for i, row in enumerate(results):
+            full_name, email, course, score, cheated, reason = row
+            line = f"{i+1}. {full_name} | {email} | {course} | Score: {score} | Cheated: {cheated} | Reason: {reason}"
+            pdf.drawString(40, y, line)
+            y -= 20
+            if y < 50:
+                pdf.showPage()
+                y = 750
+
+        pdf.save()
+        pdf_buffer.seek(0)
+
+        # Step 6: Return PDF as download
+        response = make_response(pdf_buffer.read())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=quiz_{quiz_id}_results.pdf'
+        return response
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error generating PDF: {str(e)}'}), 500
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
