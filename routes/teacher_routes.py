@@ -232,3 +232,101 @@ def export_results_pdf(quiz_id):
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+
+
+
+#API to delete whole Quiz
+@teacher_bp.route('/delete-quiz/<int:quiz_id>', methods=['DELETE'])
+def delete_quiz(quiz_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ✅ 1. Delete from responses → indirectly linked via questions
+        cursor.execute("""
+            DELETE responses FROM responses
+            JOIN questions ON responses.question_id = questions.question_id
+            WHERE questions.quiz_id = %s
+        """, (quiz_id,))
+
+        # ✅ 2. Delete from questions
+        cursor.execute("DELETE FROM questions WHERE quiz_id = %s", (quiz_id,))
+
+        # ✅ 3. Delete from violations
+        cursor.execute("DELETE FROM violations WHERE quiz_id = %s", (quiz_id,))
+
+        # ✅ 4. Delete from final_results
+        cursor.execute("DELETE FROM final_results WHERE quiz_id = %s", (quiz_id,))
+
+        # ✅ 5. Finally, delete from quizzes
+        cursor.execute("DELETE FROM quizzes WHERE quiz_id = %s", (quiz_id,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Quiz and related data deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+# Delete each question
+@teacher_bp.route('/delete-question/<int:question_id>', methods=['DELETE'])
+def delete_question(question_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        #  First delete responses linked to this question
+        cursor.execute("DELETE FROM responses WHERE question_id = %s", (question_id,))
+
+        #  Now delete the question
+        cursor.execute("DELETE FROM questions WHERE question_id = %s", (question_id,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Question deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+
+# Edit Question API
+@teacher_bp.route('/update-question/<int:question_id>', methods=['PUT'])
+def update_question(question_id):
+    data = request.get_json()
+    question_text = data.get('question_text')
+    option1 = data.get('option1')
+    option2 = data.get('option2')
+    option3 = data.get('option3')
+    option4 = data.get('option4')
+    correct_option = data.get('correct_option')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+            UPDATE questions
+            SET question_text = %s,
+                option1 = %s,
+                option2 = %s,
+                option3 = %s,
+                option4 = %s,
+                correct_option = %s
+            WHERE question_id = %s
+        """
+
+        cursor.execute(query, (question_text, option1, option2, option3, option4, correct_option, question_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Question updated successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500

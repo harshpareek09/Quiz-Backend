@@ -8,7 +8,7 @@ Content-Type: application/json
   "course": "BCA"
 }
 
-### 🔐 Teacher Login API Test (No Email)
+###  Teacher Login API Test (No Email)
 POST http://127.0.0.1:5000/teacher/login
 Content-Type: application/json
 
@@ -20,7 +20,7 @@ Content-Type: application/json
 
 
 
-### ➕ Add Question to Quiz
+###  Add Question to Quiz
 POST http://127.0.0.1:5000/teacher/add-question
 Content-Type: application/json
 
@@ -35,11 +35,11 @@ Content-Type: application/json
 }
 
 
-### 🧑‍🎓 Get Quiz Questions as Student
+###  Get Quiz Questions as Student
 GET http://127.0.0.1:5000/student/quiz/1
 
 
-### 📝 Submit Student Response
+###  Submit Student Response
 POST http://127.0.0.1:5000/student/submit-response
 Content-Type: application/json
 
@@ -50,7 +50,7 @@ Content-Type: application/json
   "selected_option": 2
 }
 
-### 🚨 Record Violation (Tab Switch)
+###  Record Violation (Tab Switch)
 POST http://127.0.0.1:5000/student/violation
 Content-Type: application/json
 
@@ -60,7 +60,7 @@ Content-Type: application/json
   "reason": "Tab switch detected"
 }
 
-### 🧮 Final Submit and Result Calculation
+###  Final Submit and Result Calculation
 POST http://127.0.0.1:5000/student/final-submit
 Content-Type: application/json
 
@@ -69,21 +69,39 @@ Content-Type: application/json
   "quiz_id": 1
 }
 
-### 📊 Get Student Result
+###  Get Student Result
 GET http://127.0.0.1:5000/student/result/1/test@gmail.com
 
 
 
-### 📊 Get All Results for a Quiz (Teacher View)
+### Get All Results for a Quiz (Teacher View)
 GET http://127.0.0.1:5000/teacher/results/1
 
-### 📋 Get all quizzes by teacher
+###  Get all quizzes by teacher
 GET http://127.0.0.1:5000/teacher/quizzes/T001
 
-### 👁️ Preview all questions in a quiz
+###  Preview all questions in a quiz
 GET http://127.0.0.1:5000/teacher/questions/1
 
 ### Export result as PDF
 GET http://127.0.0.1:5000/teacher/export/1
 
 
+###  DELETE a quiz
+DELETE http://localhost:5000/teacher/delete-quiz/1
+
+### DELETE Question
+DELETE http://localhost:5000/teacher/delete-question/5
+
+### UPDATE Question
+PUT http://localhost:5000/teacher/update-question/5
+Content-Type: application/json
+
+{
+  "question_text": "Updated Question?",
+  "option1": "A",
+  "option2": "B",
+  "option3": "C",
+  "option4": "D",
+  "correct_option": 2
+}
