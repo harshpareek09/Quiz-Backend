@@ -12,22 +12,34 @@ def student_login():
         full_name = data.get('full_name')
         course = data.get('course')
 
+        # ✅ Step 1: Input Validation — All fields required
+        if not email or not full_name or not course:
+            return jsonify({
+                'status': 'error',
+                'message': 'All fields (email, full_name, course) are required.'
+            }), 400
+
+        # ✅ Step 2: DB Connection
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # ✅ Step 3: Verify student from database
         query = "SELECT * FROM students WHERE email = %s AND full_name = %s AND course = %s"
         cursor.execute(query, (email, full_name, course))
         student = cursor.fetchone()
 
+        # ✅ Step 4: Send appropriate response
         if student:
             return jsonify({'status': 'success', 'message': 'Login successful'})
         else:
             return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
 
     except Exception as e:
+        # ✅ Step 5: Handle unexpected server error
         return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
 
     finally:
+        # ✅ Step 6: Close DB connection
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
